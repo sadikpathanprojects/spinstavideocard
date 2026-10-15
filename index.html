@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>spinsta.daily video card</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Bree+Serif&display=swap" rel="stylesheet">
+<style>
+:root{--teal:#118b8e;--dark:#0a3d3d;--coral:#ff6b5a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:#18181b;font-family:'Baloo 2','Arial Black',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:12px;padding:12px}
+.card{container-type:inline-size;width:100%;max-width:420px;aspect-ratio:1080/1308;background:var(--teal);display:flex;flex-direction:column;position:relative;overflow:hidden;text-transform:uppercase;font-weight:800}
+.strip{flex:0 0 7%}
+.pill{position:absolute;top:2.8%;left:50%;transform:translateX(-50%);background:var(--coral);color:#fff;border-radius:2.2cqw;height:6.3%;padding:0 3cqw;display:flex;align-items:center;gap:2.4cqw;font-size:3.6cqw;text-transform:none;white-space:nowrap}
+.pill svg{width:4.2cqw;height:4.2cqw}
+.head{flex:0 0 19%;background:#fff;color:#000;position:relative;display:flex;align-items:flex-end;justify-content:center;text-align:center;padding:0 3cqw 1.2cqw}
+.src{position:absolute;left:4.9cqw;top:1cqw;width:30cqw;font-family:'Bree Serif',serif;font-weight:400;font-size:2.9cqw;line-height:1.05;color:var(--coral);text-decoration:underline;text-transform:none;text-align:left}
+.head h1{margin:0;font-size:5.6cqw;line-height:1.1;font-weight:800}
+.media{flex:1;min-height:0;background:var(--teal);position:relative;display:grid;place-items:center}
+video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.media label{color:#fff;font-size:3.2cqw;cursor:pointer;padding:8cqw}
+.second{flex:0 0 12.2%;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 3cqw;font-size:4.6cqw;line-height:1.1}
+.notably{flex:0 0 6.2%;background:var(--dark);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 3cqw;font-size:3.5cqw}
+.foot{flex:0 0 4%;background:var(--coral);color:#fff;display:flex;align-items:center;padding:0 3cqw;font-size:2.5cqw}
+[contenteditable]:focus{outline:1.5px dashed #888;outline-offset:2px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.bar label,.bar button{font:inherit;font-weight:800;font-size:14px;background:var(--coral);color:#fff;border:0;border-radius:99px;padding:8px 16px;cursor:pointer}
+input[type=file]{display:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="strip"></div>
+  <div class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r=".6" fill="#fff"/></svg>spinsta.daily</div>
+  <div class="head"><div class="src" contenteditable="true">As per Source Name reported</div><h1 contenteditable="true">Your top headline goes here in capital letters</h1></div>
+  <div class="media"><video id="vid" muted loop playsinline></video><label id="pick" for="file">TAP TO ADD VIDEO</label></div>
+  <div class="second" contenteditable="true">Your second line of text goes below the video</div>
+  <div class="notably" contenteditable="true">Notably, add an extra point here</div>
+  <div class="foot">Follow @spinsta.daily for daily India news</div>
+</div>
+<div class="bar">
+  <label for="file">Change video</label>
+  <button id="pp" type="button">Play / pause</button>
+</div>
+<input id="file" type="file" accept="video/*">
+<script>
+var f=document.getElementById('file'),v=document.getElementById('vid'),p=document.getElementById('pick');
+f.addEventListener('change',function(){
+  var file=f.files&&f.files[0]; if(!file)return;
+  v.src=URL.createObjectURL(file); v.style.display='block'; p.style.display='none';
+  v.play().catch(function(){});
+});
+function tog(){ if(v.src){ v.paused?v.play():v.pause(); } }
+document.getElementById('pp').addEventListener('click',tog);
+v.addEventListener('click',tog);
+</script>
+</body>
+</html>
