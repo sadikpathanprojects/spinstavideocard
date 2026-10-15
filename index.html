@@ -26,6 +26,8 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:
 .bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .bar label,.bar button{font:inherit;font-weight:800;font-size:14px;background:var(--coral);color:#fff;border:0;border-radius:99px;padding:8px 16px;cursor:pointer}
 input[type=file]{display:none}
+.st{color:#fff;font-size:13px;min-height:1.2em;text-align:center;font-family:system-ui,sans-serif;max-width:420px}
+.bar button:disabled{opacity:.5;cursor:default}
 </style>
 </head>
 <body>
@@ -33,7 +35,7 @@ input[type=file]{display:none}
   <div class="strip"></div>
   <div class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r=".6" fill="#fff"/></svg>spinsta.daily</div>
   <div class="head"><div class="src" contenteditable="true">As per Source Name reported</div><h1 contenteditable="true">Your top headline goes here in capital letters</h1></div>
-  <div class="media"><video id="vid" muted loop playsinline></video><label id="pick" for="file">TAP TO ADD VIDEO</label></div>
+  <div class="media"><video id="vid" loop playsinline></video><label id="pick" for="file">TAP TO ADD VIDEO</label></div>
   <div class="second" contenteditable="true">Your second line of text goes below the video</div>
   <div class="notably" contenteditable="true">Notably, add an extra point here</div>
   <div class="foot">Follow @spinsta.daily for daily India news</div>
@@ -41,18 +43,179 @@ input[type=file]{display:none}
 <div class="bar">
   <label for="file">Change video</label>
   <button id="pp" type="button">Play / pause</button>
+  <button id="snd" type="button">Sound: on</button>
+  <button id="exp" type="button">Download video</button>
 </div>
+<div id="st" class="st"></div>
 <input id="file" type="file" accept="video/*">
 <script>
-var f=document.getElementById('file'),v=document.getElementById('vid'),p=document.getElementById('pick');
+var f=document.getElementById('file'),v=document.getElementById('vid'),p=document.getElementById('pick'),s=document.getElementById('snd');
+function label(){ s.textContent = v.muted ? 'Sound: off' : 'Sound: on'; }
 f.addEventListener('change',function(){
   var file=f.files&&f.files[0]; if(!file)return;
   v.src=URL.createObjectURL(file); v.style.display='block'; p.style.display='none';
-  v.play().catch(function(){});
+  v.muted=false; v.volume=1; label();
+  var pr=v.play();
+  if(pr&&pr.catch){ pr.catch(function(){
+    // Browser blocked autoplay with sound: start muted, user taps Sound to turn it on
+    v.muted=true; label(); v.play().catch(function(){});
+  }); }
 });
 function tog(){ if(v.src){ v.paused?v.play():v.pause(); } }
 document.getElementById('pp').addEventListener('click',tog);
 v.addEventListener('click',tog);
+s.addEventListener('click',function(){ v.muted=!v.muted; if(!v.muted){v.volume=1;} label(); });
+
+// ---- Export: render card + video (with audio) to a downloadable file ----
+var st=document.getElementById('st'),xb=document.getElementById('exp');
+var W=1080,H=1308,CQ=W/100,busy=false,actx=null,spk=null,adest=null;
+var FB="'Baloo 2','Arial Black',system-ui,sans-serif",FS="'Bree Serif',Georgia,serif";
+function msg(t){st.textContent=t;}
+function setupAudio(){
+  if(actx)return;
+  var AC=window.AudioContext||window.webkitAudioContext;
+  actx=new AC();
+  var src=actx.createMediaElementSource(v);
+  adest=actx.createMediaStreamDestination();
+  spk=actx.createGain();
+  src.connect(adest);src.connect(spk);spk.connect(actx.destination);
+}
+function txt(sel){return (document.querySelector(sel).innerText||'').trim().replace(/\n{2,}/g,'\n');}
+function wrap(c,text,maxW){
+  var out=[];
+  text.split('\n').forEach(function(par){
+    var words=par.split(/\s+/).filter(Boolean),line='';
+    if(!words.length){out.push('');return;}
+    words.forEach(function(w){
+      var t=line?line+' '+w:w;
+      if(line&&c.measureText(t).width>maxW){out.push(line);line=w;}else line=t;
+    });
+    out.push(line);
+  });
+  return out;
+}
+function rrect(c,x,y,w,h,r){c.beginPath();if(c.roundRect){c.roundRect(x,y,w,h,r);}else{c.rect(x,y,w,h);}}
+function icon(c,x,y,sz){
+  var s=sz/24;c.save();c.translate(x,y);c.scale(s,s);
+  c.strokeStyle='#fff';c.lineWidth=2.2;rrect(c,3,3,18,18,5);c.stroke();
+  c.beginPath();c.arc(12,12,4.2,0,7);c.stroke();
+  c.fillStyle='#fff';c.beginPath();c.arc(17.3,6.7,.6,0,7);c.fill();c.restore();
+}
+function centerLines(c,lines,cx,cy,fs,lh){
+  var top=cy-lines.length*lh/2;
+  lines.forEach(function(l,i){c.fillText(l,cx,top+i*lh+lh/2+fs*.35);});
+}
+function frame(c){
+  var sH=H*.07,hH=H*.19,sec=H*.122,nt=H*.062,ft=H*.04;
+  var hTop=sH,mTop=hTop+hH,mBot=H-ft-nt-sec,sTop=mBot,nTop=sTop+sec,fTop=nTop+nt;
+  c.textBaseline='alphabetic';
+  c.fillStyle='#118b8e';c.fillRect(0,0,W,H);
+  // video (object-fit: cover)
+  c.save();c.beginPath();c.rect(0,mTop,W,mBot-mTop);c.clip();
+  if(v.videoWidth){
+    var mh=mBot-mTop,s=Math.max(W/v.videoWidth,mh/v.videoHeight),dw=v.videoWidth*s,dh=v.videoHeight*s;
+    c.drawImage(v,(W-dw)/2,mTop+(mh-dh)/2,dw,dh);
+  }
+  c.restore();
+  // pill (drawn before header, same stacking as the on-screen card)
+  var pf=3.6*CQ,pTxt='spinsta.daily',pH=H*.063,pTop=H*.028,ic=4.2*CQ,gap=2.4*CQ,pad=3*CQ;
+  c.font='800 '+pf+'px '+FB;c.textAlign='left';
+  var tw=c.measureText(pTxt).width,pw=pad*2+ic+gap+tw,px=(W-pw)/2;
+  c.fillStyle='#ff6b5a';rrect(c,px,pTop,pw,pH,2.2*CQ);c.fill();
+  icon(c,px+pad,pTop+(pH-ic)/2,ic);
+  c.fillStyle='#fff';c.fillText(pTxt,px+pad+ic+gap,pTop+pH/2+pf*.35);
+  // header
+  c.fillStyle='#fff';c.fillRect(0,hTop,W,hH);
+  var hf=5.6*CQ,hl=hf*1.1;
+  c.font='800 '+hf+'px '+FB;c.fillStyle='#000';c.textAlign='center';
+  var hLines=wrap(c,txt('.head h1').toUpperCase(),W-6*CQ);
+  var hBottom=mTop-1.2*CQ;
+  hLines.forEach(function(l,i){
+    var lineTop=hBottom-(hLines.length-i)*hl;
+    c.fillText(l,W/2,lineTop+hl/2+hf*.35);
+  });
+  // source label
+  var sf=2.9*CQ,sl=sf*1.05;
+  c.font='400 '+sf+'px '+FS;c.textAlign='left';c.fillStyle='#ff6b5a';
+  var sLines=wrap(c,txt('.src'),30*CQ);
+  sLines.forEach(function(l,i){
+    var base=hTop+1*CQ+i*sl+sl/2+sf*.33;
+    c.fillText(l,4.9*CQ,base);
+    c.fillRect(4.9*CQ,base+sf*.1,c.measureText(l).width,Math.max(2,sf*.06));
+  });
+  // second line
+  c.fillStyle='#fff';c.fillRect(0,sTop,W,sec);
+  var f2=4.6*CQ;c.font='800 '+f2+'px '+FB;c.fillStyle='#000';c.textAlign='center';
+  centerLines(c,wrap(c,txt('.second').toUpperCase(),W-6*CQ),W/2,sTop+sec/2,f2,f2*1.1);
+  // notably
+  c.fillStyle='#0a3d3d';c.fillRect(0,nTop,W,nt);
+  var f3=3.5*CQ;c.font='800 '+f3+'px '+FB;c.fillStyle='#fff';
+  centerLines(c,wrap(c,txt('.notably').toUpperCase(),W-6*CQ),W/2,nTop+nt/2,f3,f3*1.2);
+  // footer
+  c.fillStyle='#ff6b5a';c.fillRect(0,fTop,W,ft);
+  var f4=2.5*CQ;c.font='800 '+f4+'px '+FB;c.fillStyle='#fff';c.textAlign='left';
+  c.fillText('FOLLOW @SPINSTA.DAILY FOR DAILY INDIA NEWS',3*CQ,fTop+ft/2+f4*.35);
+}
+function saveFile(blob,name){
+  var get=(window.claude&&window.claude.use)?window.claude.use('downloads'):Promise.resolve(null);
+  return get.then(function(dl){
+    if(dl)return dl.save({filename:name,data:blob});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
+    document.body.appendChild(a);a.click();a.remove();
+  });
+}
+function exportVideo(){
+  if(busy)return;
+  if(!v.src||!isFinite(v.duration)||!v.duration){msg('Add a video first.');return;}
+  if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){msg('This browser cannot export video. Try Chrome or Safari 16+.');return;}
+  busy=true;xb.disabled=true;msg('Preparing…');
+  var prevMuted=v.muted,prevLoop=v.loop;
+  function restore(){
+    v.onended=null;v.loop=prevLoop;v.muted=prevMuted;if(spk)spk.gain.value=1;label();
+    v.currentTime=0;v.play().catch(function(){});
+    busy=false;xb.disabled=false;
+  }
+  Promise.all([document.fonts.load("800 40px 'Baloo 2'"),document.fonts.load("400 30px 'Bree Serif'")])
+  .catch(function(){}).then(function(){
+    try{setupAudio();actx.resume();}catch(e){}
+    if(spk)spk.gain.value=0;
+    v.muted=false;v.volume=1;v.loop=false;
+    var cv=document.createElement('canvas');cv.width=W;cv.height=H;
+    var c=cv.getContext('2d'),stream=cv.captureStream(30);
+    if(adest)adest.stream.getAudioTracks().forEach(function(t){stream.addTrack(t);});
+    var types=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'],mime='';
+    for(var i=0;i<types.length;i++){if(MediaRecorder.isTypeSupported(types[i])){mime=types[i];break;}}
+    var opts={videoBitsPerSecond:8000000};if(mime)opts.mimeType=mime;
+    var rec=new MediaRecorder(stream,opts),chunks=[],done=false;
+    var ext=/mp4/.test(rec.mimeType||mime)?'mp4':'webm';
+    rec.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data);};
+    rec.onstop=function(){
+      var blob=new Blob(chunks,{type:ext==='mp4'?'video/mp4':'video/webm'});
+      restore();
+      if(!blob.size){msg('Export failed. Please try again.');return;}
+      msg('Saving…');
+      saveFile(blob,'spinsta-daily-card.'+ext).then(function(){msg('Done. Video saved.');})
+      .catch(function(err){msg(err&&err.code==='declined'?'Download cancelled.':'Could not save the file ('+((err&&err.code)||'error')+').');});
+    };
+    function loop(){
+      if(done)return;
+      frame(c);
+      msg('Exporting… '+Math.min(99,Math.round(v.currentTime/v.duration*100))+'% (keep this tab open)');
+      requestAnimationFrame(loop);
+    }
+    v.onended=function(){
+      frame(c);
+      setTimeout(function(){done=true;if(rec.state!=='inactive')rec.stop();},300);
+    };
+    v.pause();v.currentTime=0;
+    frame(c);
+    rec.start(1000);
+    v.play().then(function(){requestAnimationFrame(loop);}).catch(function(){
+      done=true;if(rec.state!=='inactive')rec.stop();msg('Could not start playback for export.');
+    });
+  });
+}
+xb.addEventListener('click',exportVideo);
 </script>
 </body>
 </html>
